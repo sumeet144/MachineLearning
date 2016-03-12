@@ -203,7 +203,10 @@ main()
 
 </code></pre>
 
-<p>I performed a 10-fold cross validation with K (neighbors) ranging from 1 to 25 to find the best choice of K.</p>
+<p>I performed a 10-fold cross validation with K (neighbors) ranging from 1 to 25 to find the best choice of K. The best choice of K should be 
+the one having lowest RMSE. RMSE values dipped initially and moved up and down between K=1 and K=9 but then started rising steadily for K > 10. 
+Average RMSE for 10 FOLD CV is 5.61. Lowest RMSE value is 5.243873 for K = 5.</p>
+<p>The K-nn model is optimized for boston housing data and model gives a RMSE of 5.24 with K=5 neighbors.</p>
 
 <p><img src="images/knn.png" alt="K-nn with 10-fold CV"</p>
 
