@@ -210,6 +210,141 @@ Average RMSE for 10 FOLD CV is 5.61. Lowest RMSE value is 5.243873 for K = 5.</p
 
 <p><img src="images/knn.png" alt="K-nn with 10-fold CV"</p>
 
+<h3>
+<a id="GD" class="anchor" href="#GD" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Gradient Descent</h3>
+<p>Implemented the batch gradient descent algorithm and regressed the housing price on the number of rooms per house for boston housing data
+Below is the code snippet.</p>
+<pre><code>
+def multivariate_ols(x, y, R, ep = 0.000001, MaxIterations=100000):
+    
+    """Gradient Decent to minimize OLS. Used to find co-efficients of bivariate OLS Linear regression
+       Takes parameters xvalue_matrix for features and yvalues for dependent variable, R for learning rate,
+       epsilon value ep, MaxIterations for maximum number of iterations; and returns an array theta [intercept, co-efficient]"""
+       
+    start_time = time.time()
+    converged = False
+    iter = 0
+    i = np.shape(x)[0]
+    x = np.c_[ np.ones(i), x] # insert column
+    m,n = x.shape # number of samples
+    # Initiate alpha and beta with value 1
+    theta = np.ones(n)
+    x_transpose = x.transpose()
+    e = 0.0 #Temp variable to find min cost function
+    while not converged:
+        yhat = np.dot(x, theta)
+        loss = yhat - y
+        J = np.sum(loss ** 2) / (2 * m)  # cost
+        # Check if cost function is minimum
+        if abs(J - e) <= ep:
+            print 'Converged after iterations: ', iter, '!!!'
+            converged = True
+        
+        e = J   # update temp variable with new cost value 
+        iter += 1  # update iter
+    
+        if iter == MaxIterations:
+            print 'Maximum interactions exceeded!'
+            converged = True
+        gradient = np.dot(x_transpose, loss) / m         
+        theta = theta - R * gradient  # update
+    print "Time taken: " + str(round(time.time() - start_time,2)) + " seconds"
+    return theta
+    
+    def standardize(raw_data):
+    """Normalize data""
+    return ((raw_data - np.mean(raw_data, axis = 0)) / np.std(raw_data, axis = 0))
+    
+# Filter RM and CRIM data
+rmcrm = bdata.data[:,(0,5)]
+# Normalize data
+rmcrm_std = standardize(rmcrm)
+
+# Run multivariate gradient descent function with RM and CRIM features
+R = 0.01 # learning rate
+ep = 0.00000001
+mgd = multivariate_ols(rmcrm_std, medv, R, ep, 200000)
+print "Learning rate: ", R
+print "Intercept: ", mgd[0]
+print "Coef for CRIM: ", mgd[1]
+print "Coef for RM: ", mgd[2]
+</code></pre>
+
+<p>The coefficients converged after 1001 iterations with learning rate of 0.01. The coefficients are similar to coefficients obtained with
+OLS class model from SciPy library.
+- Intercept:  22.531895225
+- Coef for CRIM:  -2.24891245358
+- Coef for RM:  5.89407627438
+</p>
+<p>Next, I perfomed the logistic regression using gradient descent on boston housing data and optimized my model. Below is the code snippet</p>
+<pre><code>
+def log_ols(x, y, R, ep = 0.000001, MaxIterations=100000):
+    """
+    Takes features matrix as x values and dependent variable as y
+    Learning rate is R, epislon as e, Maximum iterations as MaxIterations
+    :return: array with intercept and slope coefficients 
+    """
+    start_time = time.time()
+    converged = False
+    iter = 0
+    i = np.shape(x)[0]
+    x = np.c_[ np.ones(i), x] # insert column
+    m,n = x.shape # number of samples
+    # Initiate alpha and beta with value 1
+    theta = np.ones(n)
+    x_transpose = x.transpose()
+    error = 0.0 #Temp variable to find min cost function
+    while not converged:
+        # Sigmoid function to find gradient descent for logistic regression
+        hyp = 1.0 + np.e**(-1.0*np.dot(x, theta))
+        yhat = 1.0 / hyp
+        loss = yhat - y
+        J = (1./m) * (-np.transpose(y).dot(np.log(yhat)) - np.transpose(1 - y).dot(np.log(1 - yhat))) # Cost function 
+        # Check if cost function is minimum
+        if abs(J - error) <= ep:
+            print 'Converged after iterations: ', iter, '!!!'
+            converged = True
+        
+        error = J   # update temp variable with new cost value 
+        iter += 1  # update iter
+    
+        if iter == MaxIterations:
+            print 'Maximum interactions exceeded!'
+            converged = True
+        gradient = np.dot(x_transpose, loss) / m         
+        theta = theta - R * gradient  # update
+    print "Time taken: " + str(round(time.time() - start_time,2)) + " seconds"
+    return theta
+    
+    # Set variable expensive with 1 = expensive for medv > 40.0 and 0 = not expensive
+expensive = np.where(bdata.target>40.0, 1,0)
+# Filter CHAS and RM values
+chasrm = bdata.data[:,(3,5)]
+
+R = 0.01 # learning rate
+ep = 0.00000001
+# Run logistic gradient descent
+theta_log = log_ols(chasrm, expensive, R, ep, 800000)
+print "Learning rate: ", R
+print "Intercept: ", theta_log[0]
+print "Coefficient for CHAS: ", theta_log[1]
+print "Coefficient for RM: ", theta_log[2]
+</code></pre>
+
+<p>Finally, I ran my optimized model on my test data and calcualted the accuracy of the data.</p>
+<pre><code>
+# Append ones to CHAS and RM matrix
+chasrm_t = np.c_[ np.ones(len(chasrm)), chasrm]
+chasrm_trans = chasrm_t.transpose()
+# Sigmoid function to find predicted values using theta_log from log_ols() gradient descent above
+chasrm_hyp = 1.0 + np.e**(-1.0*np.dot(theta_log, chasrm_trans))
+chasrm_sig = 1.0 / chasrm_hyp
+# Set simple classifier. predict 1 for sigmoid function (chasrm_sig >= 0.5)
+chasrm_pred = np.where(chasrm_sig>=0.5, 1,0)
+# Calculate accuracy of the model
+print '\nACCURACY OF THE MODEL IS: %f' % ((expensive[np.where(chasrm_pred == expensive)].size / float(expensive.size)) * 100.0), '%'
+</code></pre>
+<p>ACCURACY OF THE MODEL IS: 95.849802 %</p>
       </section>
       <footer>
         <p>This project is maintained by <a href="https://github.com/sumeet144">sumeet144</a></p>
